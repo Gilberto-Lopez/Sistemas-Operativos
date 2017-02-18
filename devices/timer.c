@@ -118,11 +118,11 @@ timer_sleep (int64_t ticks)
    * The interruptions must be turned off to ensure
    * no errors will raise while blocking threads.
    */
-  struct thread *curr = thread_current();
+  struct thread *curr = thread_current ();
   curr->remaining_time = ticks;
-  list_push_back(&asleep_list, curr);
+  list_push_back (&asleep_list, curr);
   int old = intr_set_level (INTR_OFF);
-  thread_block();
+  thread_block ();
   intr_set_level (old);
 }
 

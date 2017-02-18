@@ -3,7 +3,7 @@ Operative Systems, PintOS.
 
 ---------------
 
-The files and directories in this repository must replace the corresponding ones under pintos/src/ direcotory.
+The files and directories in this repository must replace the corresponding ones under pintos/src/ directory.
 
 Look for "Practice" comments to see changes through time.
 
