@@ -85,7 +85,7 @@ typedef int tid_t;
 struct thread
   {
     /* Practice 1: element of asleep_list. See list.h for more info. */
-    struct list_elem elem;              /* Needed for asleep_list in timer.c. */
+    struct list_elem pcb_elem;          /* Needed for asleep_list in timer.c. */
   	
     /* Owned by thread.c. */
     tid_t tid;                          /* Thread identifier. */

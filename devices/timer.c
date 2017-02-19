@@ -220,7 +220,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
   for (e = list_begin (&asleep_list);
        e != list_end (&asleep_list);
        e = list_next (e)) {
-    struct thread *asleep_t = list_entry (e, struct thread, elem);
+    struct thread *asleep_t = list_entry (e, struct thread, pcb_elem);
     asleep_t->remaining_time--;
     if (asleep_t->remaining_time == 0) {
       thread_unblock (asleep_t);
