@@ -97,7 +97,9 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t ticks) 
 {
+  /*
   int64_t start = timer_ticks ();
+  */
 
   ASSERT (intr_get_level () == INTR_ON);
 
@@ -120,7 +122,7 @@ timer_sleep (int64_t ticks)
    */
   struct thread *curr = thread_current ();
   curr->remaining_time = ticks;
-  list_push_back (&asleep_list, curr);
+  list_push_back (&asleep_list, &(curr->pcb_elem));
   int old = intr_set_level (INTR_OFF);
   thread_block ();
   intr_set_level (old);
