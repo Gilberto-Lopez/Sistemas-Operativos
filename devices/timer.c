@@ -205,9 +205,10 @@ timer_interrupt (struct intr_frame *args UNUSED)
   /* Original implementation: busy wait.
    * Counts ticks and checks every time if the
    * thread can continue its execution.
+   * Still we need to count ticks.
    */
-  /*
   ticks++;
+  /*
   thread_tick ();
   */
 
@@ -224,7 +225,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
        e = list_next (e)) {
     struct thread *asleep_t = list_entry (e, struct thread, pcb_elem);
     asleep_t->remaining_time--;
-    if (asleep_t->remaining_time == 0) {
+    if (!asleep_t->remaining_time) {
       thread_unblock (asleep_t);
       list_remove (e);
     }
