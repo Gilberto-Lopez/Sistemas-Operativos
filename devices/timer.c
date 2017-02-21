@@ -147,12 +147,12 @@ timer_sleep (int64_t ticks)
   struct asleep_thread t;
   if (ticks > 0) {
     struct thread *curr = thread_current ();
-    t->pcb = curr;
-    t->wake_tick = timer_ticks () + ticks;
+    t.pcb = curr;
+    t.wake_tick = timer_ticks () + ticks;
     /* Use struct asleep_thread instead. */
     //curr->remaining_time = ticks;
     //list_push_back (&asleep_list, &(curr->pcb_elem));
-    list_insert_ordered (&asleep_list, &(t->pcb_elem), &compare_asleep_threads, NULL);
+    list_insert_ordered (&asleep_list, &(t.pcb_elem), &compare_asleep_threads, NULL);
     int old = intr_set_level (INTR_OFF);
     thread_block ();
     intr_set_level (old);
@@ -267,7 +267,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
     }
     */
     struct asleep_thread *asleep_t = list_entry (e, struct asleep_thread, pcb_elem);
-    if (asleep_t->pcb->wake_tick == ticks) {
+    if (asleep_t->wake_tick == ticks) {
       thread_unblock (asleep_t->pcb);
       list_remove (e);
     } else {
