@@ -119,13 +119,17 @@ timer_sleep (int64_t ticks)
    * is called.
    * The interruptions must be turned off to ensure
    * no errors will raise while blocking threads.
+   * Also, ticks must be positive, otherwise doesn't
+   * make sense.
    */
-  struct thread *curr = thread_current ();
-  curr->remaining_time = ticks;
-  list_push_back (&asleep_list, &(curr->pcb_elem));
-  int old = intr_set_level (INTR_OFF);
-  thread_block ();
-  intr_set_level (old);
+  if (ticks > 0) {
+    struct thread *curr = thread_current ();
+    curr->remaining_time = ticks;
+    list_push_back (&asleep_list, &(curr->pcb_elem));
+    int old = intr_set_level (INTR_OFF);
+    thread_block ();
+    intr_set_level (old);
+  }
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
