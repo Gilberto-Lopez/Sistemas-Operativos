@@ -42,6 +42,21 @@ struct asleep_thread {
   struct thread *pcb;           /* The thread. */
 };
 
+/* Practice 1: Compares two asleep_threads given by A and B.
+ * Returns true if A is less than B, iff A->wake_tick < B->wake_tick.
+ * Returns false otherwise.
+ * Thrid argument, AUX, can be NULL, is not used.
+ */
+bool
+compare_asleep_threads (const struct list_elem *a,
+                        const struct list_elem *b,
+                        void *aux)
+{
+  struct asleep_thread *ta = list_entry (a, struct asleep_thread, pcb_elem);
+  struct asleep_thread *tb = list_entry (b, struct asleep_thread, pcb_elem);
+  return ta->wake_tick < tb->wake_tick;
+}
+
 /* Sets up the timer to interrupt TIMER_FREQ times per second,
    and registers the corresponding interrupt. */
 void
@@ -134,9 +149,10 @@ timer_sleep (int64_t ticks)
     struct thread *curr = thread_current ();
     t->pcb = curr;
     t->wake_tick = timer_ticks () + ticks;
-    //curr->remaining_time = ticks;                     /* Use struct asleep_thread instead. */
-    //list_push_back (&asleep_list, &(curr->pcb_elem)); /* Use struct asleep_thread instead. */
-    list_insert_ordered (&asleep_list, &(t->pcb_elem), , );
+    /* Use struct asleep_thread instead. */
+    //curr->remaining_time = ticks;
+    //list_push_back (&asleep_list, &(curr->pcb_elem));
+    list_insert_ordered (&asleep_list, &(t->pcb_elem), &compare_asleep_threads, NULL);
     int old = intr_set_level (INTR_OFF);
     thread_block ();
     intr_set_level (old);
@@ -233,16 +249,29 @@ timer_interrupt (struct intr_frame *args UNUSED)
    * 2. If remaining_time is 0 then unblock the thread
    *    and remove it from asleep_list.
    * 3. Otherwise continue with the next thread.
+   * If using struct asleep_thread, only unblock threads
+   * that must wake up at the current timer tick
+   * (asleep_list is ordered).
    */
   struct list_elem *e;
   for (e = list_begin (&asleep_list);
        e != list_end (&asleep_list);
        e = list_next (e)) {
+    /* Use struct asleep_thread instead. */
+    /*
     struct thread *asleep_t = list_entry (e, struct thread, pcb_elem);
     asleep_t->remaining_time--;
     if (!asleep_t->remaining_time) {
       thread_unblock (asleep_t);
       list_remove (e);
+    }
+    */
+    struct asleep_thread *asleep_t = list_entry (e, struct asleep_thread, pcb_elem);
+    if (asleep_t->pcb->wake_tick == ticks) {
+      thread_unblock (asleep_t->pcb);
+      list_remove (e);
+    } else {
+      break;
     }
   }
 }

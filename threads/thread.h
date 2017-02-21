@@ -88,6 +88,7 @@ struct thread
     /* Practice 1: element of asleep_list. See list.h for more info. */
     /* Not needed anymore, see asleep_thread structure at timer.c. */
     //struct list_elem pcb_elem;          /* Needed for asleep_list in timer.c. */
+    //int64_t remaining_time;             /* The time this process must remain asleep. */
 
     /* Owned by thread.c. */
     tid_t tid;                          /* Thread identifier. */
@@ -107,10 +108,6 @@ struct thread
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
-    
-    /* Practice 1. */
-    /* Not needed anymore, see asleep_thread structure at timer.c. */
-    //int64_t remaining_time;             /* The time this process must remain asleep. */
   };
 
 /* If false (default), use round-robin scheduler.
