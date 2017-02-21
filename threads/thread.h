@@ -5,7 +5,8 @@
 #include <list.h>
 #include <stdint.h>
 /* Practice 1: List for asleep processes. */
-#include "lib/kernel/list.h"
+/* Not needed anymore, see asleep_thread structure at timer.c. */
+//#include "lib/kernel/list.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -85,8 +86,9 @@ typedef int tid_t;
 struct thread
   {
     /* Practice 1: element of asleep_list. See list.h for more info. */
-    struct list_elem pcb_elem;          /* Needed for asleep_list in timer.c. */
-  	
+    /* Not needed anymore, see asleep_thread structure at timer.c. */
+    //struct list_elem pcb_elem;          /* Needed for asleep_list in timer.c. */
+
     /* Owned by thread.c. */
     tid_t tid;                          /* Thread identifier. */
     enum thread_status status;          /* Thread state. */
@@ -107,7 +109,8 @@ struct thread
     unsigned magic;                     /* Detects stack overflow. */
     
     /* Practice 1. */
-    int64_t remaining_time;             /* The time this process must remain asleep. */
+    /* Not needed anymore, see asleep_thread structure at timer.c. */
+    //int64_t remaining_time;             /* The time this process must remain asleep. */
   };
 
 /* If false (default), use round-robin scheduler.

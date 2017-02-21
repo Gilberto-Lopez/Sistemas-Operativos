@@ -35,6 +35,13 @@ static void real_time_delay (int64_t num, int32_t denom);
 /* Practice 1: List for asleep processes. */
 static struct list asleep_list;
 
+/* Practice 1: Structure for asleep threads. */
+struct asleep_thread {
+  struct list_elem pcb_elem;    /* Needed for asleep_list. */
+  int64_t wake_tick;            /* The tick the thread will wake up at. */
+  struct thread *pcb;           /* The thread. */
+};
+
 /* Sets up the timer to interrupt TIMER_FREQ times per second,
    and registers the corresponding interrupt. */
 void
@@ -122,10 +129,14 @@ timer_sleep (int64_t ticks)
    * Also, ticks must be positive, otherwise doesn't
    * make sense.
    */
+  struct asleep_thread t;
   if (ticks > 0) {
     struct thread *curr = thread_current ();
-    curr->remaining_time = ticks;
-    list_push_back (&asleep_list, &(curr->pcb_elem));
+    t->pcb = curr;
+    t->wake_tick = timer_ticks () + ticks;
+    //curr->remaining_time = ticks;                     /* Use struct asleep_thread instead. */
+    //list_push_back (&asleep_list, &(curr->pcb_elem)); /* Use struct asleep_thread instead. */
+    list_insert_ordered (&asleep_list, &(t->pcb_elem), , );
     int old = intr_set_level (INTR_OFF);
     thread_block ();
     intr_set_level (old);
