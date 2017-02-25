@@ -50,7 +50,7 @@ struct asleep_thread {
 bool
 compare_asleep_threads (const struct list_elem *a,
                         const struct list_elem *b,
-                        void *aux)
+                        void *aux UNUSED)
 {
   struct asleep_thread *ta = list_entry (a, struct asleep_thread, pcb_elem);
   struct asleep_thread *tb = list_entry (b, struct asleep_thread, pcb_elem);
