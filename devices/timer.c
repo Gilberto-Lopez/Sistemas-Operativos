@@ -36,7 +36,7 @@ static void real_time_delay (int64_t num, int32_t denom);
 static struct list asleep_list;
 
 /* Lab 1: Structure for asleep threads. */
-struct asleep_thread {
+static struct asleep_thread {
   struct list_elem pcb_elem;    /* Needed for asleep_list. */
   int64_t wake_tick;            /* The tick the thread will wake up at. */
   struct thread *pcb;           /* The thread. */
@@ -47,7 +47,7 @@ struct asleep_thread {
  * Returns false otherwise.
  * Thrid argument, AUX, can be NULL, is not used.
  */
-bool
+static bool
 compare_asleep_threads (const struct list_elem *a,
                         const struct list_elem *b,
                         void *aux UNUSED)
