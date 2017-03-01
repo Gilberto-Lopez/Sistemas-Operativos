@@ -4,7 +4,12 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
-/* Practice 1: List for asleep processes. */
+
+/* Lab 2: Used for ordered insertions */
+bool
+thread_less (const struct list_elem *e1, const struct list_elem *e2, void *aux UNUSED);
+
+/* Lab 1: List for asleep processes. */
 /* Not needed anymore, see asleep_thread structure at timer.c. */
 //#include "lib/kernel/list.h"
 
