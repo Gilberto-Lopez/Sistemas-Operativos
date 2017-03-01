@@ -37,9 +37,9 @@ static struct thread *initial_thread;
 /* Lock used by allocate_tid(). */
 static struct lock tid_lock;
 
-/* LAB 02 */
+/* Lab 02 */
 /* Function used for thread comparisons
-   Returns true if e1 < e2 */
+   Returns true if e1 > e2 */
 bool
 thread_less (const struct list_elem *e1, const struct list_elem *e2, void *aux UNUSED)
 {
@@ -221,7 +221,7 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
-  /* LAB 02 */
+  /* Lab 02 */
   /* In case this thread has higher priority than the current thread */
   thread_yield ();
 
@@ -261,7 +261,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  /* LAB 02 */
+  /* Lab 02 */
   /* To keep the list in order */
   list_insert_ordered (&ready_list, &t->elem, thread_less, NULL);
   t->status = THREAD_READY;
@@ -333,7 +333,7 @@ thread_yield (void)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
-  /* LAB 02 */
+  /* Lab 02 */
   /* Insertions keep the list's order */
   if (cur != idle_thread) 
     list_insert_ordered (&ready_list, &cur->elem, thread_less, NULL);

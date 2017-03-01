@@ -50,7 +50,7 @@ sema_init (struct semaphore *sema, unsigned value)
   list_init (&sema->waiters);
 }
 
-/* LAB 02 */
+/* Lab 02 */
 /* For sorting the semaphore linked_lists */
 static bool
 semaphore_less(const struct list_elem *e1, const struct list_elem *e2, void *aux UNUSED);
@@ -73,7 +73,7 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
-      /* LAB 02 */
+      /* Lab 02 */
       /* Similar to how we insert threads */
       list_insert_ordered (&sema->waiters, &thread_current ()->elem, thread_less, NULL);
       thread_block ();
@@ -126,7 +126,7 @@ sema_up (struct semaphore *sema)
   sema->value++;
   intr_set_level (old_level);
 
-  /* LAB 02 */
+  /* Lab 02 */
   /* In case we have altered the priorities */
   thread_yield ();
 }
@@ -329,7 +329,7 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED)
 
   if (!list_empty (&cond->waiters)) 
   {
-    /* LAB 02 */
+    /* Lab 02 */
     /* List order can't be mantained with a simple ordered insertion,
        so we sort the list every time we get the front of cond->waiters */
     list_sort (&cond->waiters, semaphore_less, NULL);
@@ -354,7 +354,7 @@ cond_broadcast (struct condition *cond, struct lock *lock)
     cond_signal (cond, lock);
 }
 
-/* LAB 02 */
+/* Lab 02 */
 /* For sorting the semaphore linked_lists */
 static bool
 semaphore_less(const struct list_elem *e1, const struct list_elem *e2, void *aux UNUSED)

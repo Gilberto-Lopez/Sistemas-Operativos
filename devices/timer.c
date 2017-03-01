@@ -7,7 +7,7 @@
 #include "threads/interrupt.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
-/* Practice 1: List for asleep precesses. */
+/* Lab 1: List for asleep precesses. */
 #include "lib/kernel/list.h"
   
 /* See [8254] for hardware details of the 8254 timer chip. */
@@ -32,17 +32,17 @@ static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
 
-/* Practice 1: List for asleep processes. */
+/* Lab 1: List for asleep processes. */
 static struct list asleep_list;
 
-/* Practice 1: Structure for asleep threads. */
+/* Lab 1: Structure for asleep threads. */
 struct asleep_thread {
   struct list_elem pcb_elem;    /* Needed for asleep_list. */
   int64_t wake_tick;            /* The tick the thread will wake up at. */
   struct thread *pcb;           /* The thread. */
 };
 
-/* Practice 1: Compares two asleep_threads given by A and B.
+/* Lab 1: Compares two asleep_threads given by A and B.
  * Returns true if A is less than B, iff A->wake_tick < B->wake_tick.
  * Returns false otherwise.
  * Thrid argument, AUX, can be NULL, is not used.
@@ -65,7 +65,7 @@ timer_init (void)
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
   
-  /* Practice 1: Initialize asleep_list. */
+  /* Lab 1: Initialize asleep_list. */
   list_init(&asleep_list);
 }
 
@@ -135,7 +135,7 @@ timer_sleep (int64_t ticks)
     thread_yield ();
   */
 
-  /* Practice 1: block wait.
+  /* Lab 1: block wait.
    * thread_block() blocks the current thread
    * so it won't execute till thread_unblock()
    * is called.
@@ -243,7 +243,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
   thread_tick ();
   */
 
-  /* Practice 1: block wait.
+  /* Lab 1: block wait.
    * For every asleep thread in asleep_list:
    * 1. Decrement the remaining_time.
    * 2. If remaining_time is 0 then unblock the thread
