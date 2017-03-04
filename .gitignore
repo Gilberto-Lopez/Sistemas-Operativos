@@ -1,0 +1,6 @@
+## PDF files
+**/*.pdf
+
+## Teomporary files
+**/*~
+

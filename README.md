@@ -9,8 +9,9 @@ Look for "Lab" comments to see changes through time.
 
 ---------------
 
-Practices:
+Lab Practices:
 
 1. Timer sleep.
 2. Priority scheduling.
+3. Multi-level queue scheduling.
 
