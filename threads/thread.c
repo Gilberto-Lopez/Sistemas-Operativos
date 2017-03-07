@@ -39,6 +39,11 @@ static struct thread *initial_thread;
 /* Lock used by allocate_tid(). */
 static struct lock tid_lock;
 
+/*temporary, I hope...*/
+int load_avg = 0;
+int load_avg_1 = INT_TO_FIXPOINT (1, 60);
+int load_avg_2 = INT_TO_FIXPOINT (59, 60);
+
 /* Lab 02 */
 /* Function used for thread comparisons
    Returns true if e1 > e2 */
@@ -151,6 +156,19 @@ thread_tick (void)
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
+
+  /*Lab 03*/
+  /*We will compute some variables from here.*/
+  int dos = INT_TO_FIXPOINT(2,1);
+  int ready = 0;
+  if (thread_current () == idle_thread){
+    ready = list_size(&ready_list);
+  }else{
+    ready = list_size(&ready_list)+1;
+  }
+
+  load_avg = MULT_FP(INT_TO_FIXPOINT(59,60),load_avg)+ MULT_FP(INT_TO_FIXPOINT(1,60),INT_TO_FIXPOINT(ready,1));
+  thread_current () -> recent_cpu = MULT_FP(DIV_FP(MULT_FP(dos,load_avg),MULT_FP(dos,load_avg)+1),thread_current () -> recent_cpu)+thread_current () -> noice;
 }
 
 /* Prints thread statistics. */
@@ -377,9 +395,7 @@ thread_set_priority (int new_priority)
 /* This is part of the third practice of the Lab.
  * Coefficients and the next four functions.
  */
-int load_avg = 0;
-int load_avg_1 = INT_TO_FIXPOINT (1, 60);
-int load_avg_2 = INT_TO_FIXPOINT (59, 60);
+
 
 /* Returns the current thread's priority. */
 int
@@ -411,7 +427,7 @@ thread_get_load_avg (void)
   if (thread_current () != idle_thread)
   r += 1 << FRACT_BITS;
   load_avg = s + MULT_FP (load_avg_1, r << FRACT_BITS);
-  return FIXPOINT_TO_INT (load_avg);
+  return FIXPOINT_TO_INT (load_avg)*100;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
@@ -423,7 +439,7 @@ thread_get_recent_cpu (void)
   int r = DIV_FP (p, q);
   r = MULT_FP (r, thread_current()->recent_cpu);
   thread_current()->recent_cpu = r + (thread_current()->noice << FRACT_BITS);
-  return FIXPOINT_TO_INT ( thread_current()->recent_cpu);
+  return FIXPOINT_TO_INT ( thread_current()->recent_cpu)*100;
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
