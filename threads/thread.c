@@ -11,6 +11,8 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "lib/kernel/fixpoint.h"
+#include "lib/kernel/list.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -370,6 +372,12 @@ thread_set_priority (int new_priority)
   thread_yield ();
 }
 
+/* This is part of the third practice of the Lab.
+*/
+int load_avg = 0;
+int load_avg_1 = INT_TO_FIXPOINT (1, 60);
+int load_avg_2 = INT_TO_FIXPOINT (59, 60);
+
 /* Returns the current thread's priority. */
 int
 thread_get_priority (void) 
@@ -381,31 +389,39 @@ thread_get_priority (void)
 void
 thread_set_nice (int nice UNUSED) 
 {
-  /* Not yet implemented. */
+thread_current ()->noice = nice;
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+ return thread_current ()->noice;
+  
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+   int s = MULT_FP (load_avg_2, load_avg);
+  int r = INT_TO_FIXPOINT (list_size (&ready_list),1);
+  if (thread_current () != idle_thread)
+  r += 1 << FRACT_BITS;
+  load_avg = s + MULT_FP (load_avg_1, r << FRACT_BITS);
+  return FIXPOINT_TO_INT (load_avg);
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  int p = MULT_FP (2 << FRACT_BITS, load_avg);
+  int q = p + (1 << FRACT_BITS);
+  int r = DIV_FP (p, q);
+  r = MULT_FP (r, thread_current()->recent_cpu);
+  thread_current()->recent_cpu = r + thread_current()->noice << FRACT_BITS;
+  return FIXPOINT_TO_INT ( thread_current()->recent_cpu);
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -609,3 +625,6 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+
+
