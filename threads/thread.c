@@ -42,8 +42,8 @@ static struct lock tid_lock;
 
 /* Lab 03 : temporary, I hope... */
 int load_avg = 0;
-int load_avg_1 = INT_TO_FIXPOINT (1, 60);
-int load_avg_2 = INT_TO_FIXPOINT (59, 60);
+int load_avg_1 = DIV_FP (1 << FRACT_BITS, 60 << FRACT_BITS);//INT_TO_FIXPOINT (1, 60);
+int load_avg_2 = DIV_FP (59 << FRACT_BITS, 60 << FRACT_BITS);//INT_TO_FIXPOINT (59, 60);
 
 /* Lab 02 */
 /* Function used for thread comparisons
@@ -453,8 +453,8 @@ thread_get_load_avg (void)
   int s = MULT_FP (load_avg_2, load_avg);
   int r = INT_TO_FIXPOINT (list_size (&ready_list),1);
   if (thread_current () != idle_thread)
-  r += 1 << FRACT_BITS;
-  load_avg = s + MULT_FP (load_avg_1, r << FRACT_BITS);
+    r += 1 << FRACT_BITS;
+  load_avg = s + MULT_FP (load_avg_1, r);
   return FIXPOINT_TO_INT (MULT_FP (load_avg, 100 << FRACT_BITS));
 }
 
@@ -552,6 +552,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+  /* Lab 03. */
+  /* Noice and recent_cpu are 0 by default. */
   t->noice = 0;
   t->recent_cpu = 0;
   list_push_back (&all_list, &t->allelem);
