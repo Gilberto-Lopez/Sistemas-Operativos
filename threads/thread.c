@@ -368,12 +368,15 @@ thread_set_priority (int new_priority)
 {
   thread_current ()->priority = new_priority;
 
-  /* in case we now have an unordered list */
+  /* Lab 02 */
+  /* In case we now have an unordered list */
   thread_yield ();
 }
 
+/* Lab 03 */
 /* This is part of the third practice of the Lab.
-*/
+ * Coefficients and the next four functions.
+ */
 int load_avg = 0;
 int load_avg_1 = INT_TO_FIXPOINT (1, 60);
 int load_avg_2 = INT_TO_FIXPOINT (59, 60);
@@ -389,22 +392,21 @@ thread_get_priority (void)
 void
 thread_set_nice (int nice UNUSED) 
 {
-thread_current ()->noice = nice;
+  thread_current ()->noice = nice;
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
- return thread_current ()->noice;
-  
+  return thread_current ()->noice;
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) 
 {
-   int s = MULT_FP (load_avg_2, load_avg);
+  int s = MULT_FP (load_avg_2, load_avg);
   int r = INT_TO_FIXPOINT (list_size (&ready_list),1);
   if (thread_current () != idle_thread)
   r += 1 << FRACT_BITS;
@@ -420,7 +422,7 @@ thread_get_recent_cpu (void)
   int q = p + (1 << FRACT_BITS);
   int r = DIV_FP (p, q);
   r = MULT_FP (r, thread_current()->recent_cpu);
-  thread_current()->recent_cpu = r + thread_current()->noice << FRACT_BITS;
+  thread_current()->recent_cpu = r + (thread_current()->noice << FRACT_BITS);
   return FIXPOINT_TO_INT ( thread_current()->recent_cpu);
 }
 

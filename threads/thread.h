@@ -5,11 +5,11 @@
 #include <list.h>
 #include <stdint.h>
 
-/* Lab 2: Used for ordered insertions. */
+/* Lab 02: Used for ordered insertions. */
 bool
 thread_less (const struct list_elem *e1, const struct list_elem *e2, void *aux UNUSED);
 
-/* Lab 1: List for asleep processes. */
+/* Lab 01: List for asleep processes. */
 /* Not needed anymore, see asleep_thread structure at timer.c. */
 //#include "lib/kernel/list.h"
 
@@ -90,7 +90,7 @@ typedef int tid_t;
    blocked state is on a semaphore wait list. */
 struct thread
   {
-    /* Lab 1: element of asleep_list. See list.h for more info. */
+    /* Lab 01: element of asleep_list. See list.h for more info. */
     /* Not needed anymore, see asleep_thread structure at timer.c. */
     //struct list_elem pcb_elem;          /* Needed for asleep_list in timer.c. */
     //int64_t remaining_time;             /* The time this process must remain asleep. */
@@ -100,6 +100,7 @@ struct thread
     enum thread_status status;          /* Thread state. */
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
+    /* Lab 03: Multi-level queue scheduling needs the next three members. */
     int priority;                       /* Priority. */
     int noice;                          /* Niceness, the rare name is due to a local joke. */
     int recent_cpu;                     /* Amount of time thread has used the cpu */
