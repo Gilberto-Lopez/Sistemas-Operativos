@@ -41,9 +41,15 @@ static struct thread *initial_thread;
 static struct lock tid_lock;
 
 /* Lab 03 : temporary, I hope... */
-int load_avg = 0;
-int load_avg_1 = DIV_FP (1 << FRACT_BITS, 60 << FRACT_BITS);//INT_TO_FIXPOINT (1, 60);
-int load_avg_2 = DIV_FP (59 << FRACT_BITS, 60 << FRACT_BITS);//INT_TO_FIXPOINT (59, 60);
+static int load_avg = 0;
+static int load_avg_1 = INT_TO_FIXPOINT (1, 60);
+static int load_avg_2 = INT_TO_FIXPOINT (59, 60);
+static int one = 1 << FRACT_BITS;
+static int two = 2 << FRACT_BITS;
+static int four = 4 << FRACT_BITS;
+static int hundred = 100 << FRACT_BITS;
+static int PM = PRI_MAX << FRACT_BITS;
+static int ready_threads;
 
 /* Lab 02 */
 /* Function used for thread comparisons
@@ -61,8 +67,8 @@ thread_less (const struct list_elem *e1, const struct list_elem *e2, void *aux U
 /* Computes the recent_cpu for the given thread T. */
 static void
 thread_recent_cpu (struct thread* t, void* aux UNUSED) {
-  int p = MULT_FP (2 << FRACT_BITS, load_avg);
-  int q = p + (1 << FRACT_BITS);
+  int p = MULT_FP (two, load_avg);
+  int q = p + one;
   int r = DIV_FP (p, q);
   r = MULT_FP (r, t->recent_cpu);
   t->recent_cpu = r + (t->noice << FRACT_BITS);
@@ -72,8 +78,7 @@ thread_recent_cpu (struct thread* t, void* aux UNUSED) {
 /* Computes the new priority for the given thread T. */
 static void
 thread_compute_priority (struct thread* t, void* aux UNUSED) {
-  int PM = PRI_MAX << FRACT_BITS;
-  int p = PM - DIV_FP (t->recent_cpu, 4 << FRACT_BITS) - MULT_FP (2 << FRACT_BITS, t->noice);
+  int p = PM - DIV_FP (t->recent_cpu, four) - MULT_FP (two, t->noice);
   t->priority = FIXPOINT_TO_INT (p);
 }
 
@@ -131,6 +136,8 @@ thread_init (void)
 
   lock_init (&tid_lock);
   list_init (&ready_list);
+  /* Lab 03: There are 0 ready_threads. */
+  ready_threads = 0;
   list_init (&all_list);
 
   /* Set up a thread structure for the running thread. */
@@ -305,6 +312,10 @@ thread_unblock (struct thread *t)
   /* Lab 02 */
   /* To keep the list in order */
   list_insert_ordered (&ready_list, &t->elem, thread_less, NULL);
+  /* Lab 03 */
+  /* Every time a thread enters the ready_list
+   * increment by 1 ready_threads. */
+  ready_threads++;
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -376,8 +387,13 @@ thread_yield (void)
   old_level = intr_disable ();
   /* Lab 02 */
   /* Insertions keep the list's order */
-  if (cur != idle_thread) 
+  if (cur != idle_thread)  {
     list_insert_ordered (&ready_list, &cur->elem, thread_less, NULL);
+    /* Lab 03 */
+    /* Every time a thread enters the ready_list
+     * increment by 1 ready_threads. */
+    ready_threads++;
+  }
 
   cur->status = THREAD_READY;
   schedule ();
@@ -451,11 +467,11 @@ int
 thread_get_load_avg (void) 
 {
   int s = MULT_FP (load_avg_2, load_avg);
-  int r = INT_TO_FIXPOINT (list_size (&ready_list),1);
+  int r = INT_TO_FIXPOINT (ready_threads,1);
   if (thread_current () != idle_thread)
-    r += 1 << FRACT_BITS;
+    r += one;
   load_avg = s + MULT_FP (load_avg_1, r);
-  return FIXPOINT_TO_INT (MULT_FP (load_avg, 100 << FRACT_BITS));
+  return FIXPOINT_TO_INT (MULT_FP (load_avg, hundred));
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
@@ -464,7 +480,7 @@ thread_get_recent_cpu (void)
 {
   struct thread *curr = thread_current ();
   thread_recent_cpu (curr, NULL);
-  return FIXPOINT_TO_INT (MULT_FP (curr->recent_cpu, 100 << FRACT_BITS));
+  return FIXPOINT_TO_INT (MULT_FP (curr->recent_cpu, hundred));
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -582,8 +598,14 @@ next_thread_to_run (void)
 {
   if (list_empty (&ready_list))
     return idle_thread;
-  else
+  else {
+    /* Lab 03 */
+    /* Every time a thread leaves the ready_list
+     * decrement by 1 ready_threads. */
+    ready_threads--;
     return list_entry (list_pop_front (&ready_list), struct thread, elem);
+
+  }
 }
 
 /* Completes a thread switch by activating the new thread's page
