@@ -178,8 +178,11 @@ thread_tick (void)
    * for each thread. */
   int old = intr_disable ();
   // Interruptions must be turned off before calling thread_foreach
-  if (!timer_ticks () % TIMER_FREQ)
+  t->recent_cpu++;
+  if (!timer_ticks () % TIMER_FREQ) {
+    thread_get_load_avg ();
     thread_foreach (&thread_recent_cpu, NULL);
+  }
   if (!timer_ticks () % 4)
     thread_foreach (&thread_compute_priority, NULL);
   intr_set_level (old);
@@ -426,7 +429,14 @@ thread_get_priority (void)
 void
 thread_set_nice (int nice) 
 {
-  thread_current ()->noice = nice;
+  /* Lab 03. */
+  /* Nice must be between -20 and 20. */
+  if (nice > 20)
+    thread_current ()->noice = 20;
+  else if (nice < -20)
+    thread_current ()->noice = -20;
+  else
+    thread_current ()->noice = nice;
 }
 
 /* Returns the current thread's nice value. */
@@ -542,6 +552,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+  t->noice = 0;
+  t->recent_cpu = 0;
   list_push_back (&all_list, &t->allelem);
 }
 
