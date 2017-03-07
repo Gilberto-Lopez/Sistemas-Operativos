@@ -13,6 +13,7 @@
 #include "threads/vaddr.h"
 #include "lib/kernel/fixpoint.h"
 #include "lib/kernel/list.h"
+#include "devices/timer.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -39,7 +40,7 @@ static struct thread *initial_thread;
 /* Lock used by allocate_tid(). */
 static struct lock tid_lock;
 
-/*temporary, I hope...*/
+/* Lab 03 : temporary, I hope... */
 int load_avg = 0;
 int load_avg_1 = INT_TO_FIXPOINT (1, 60);
 int load_avg_2 = INT_TO_FIXPOINT (59, 60);
@@ -54,6 +55,26 @@ thread_less (const struct list_elem *e1, const struct list_elem *e2, void *aux U
   struct thread *d2 = list_entry (e2, struct thread, elem);
 
   return d1->priority > d2->priority;
+}
+
+/* Lab 03. */
+/* Computes the recent_cpu for the given thread T. */
+static void
+thread_recent_cpu (struct thread* t, void* aux UNUSED) {
+  int p = MULT_FP (2 << FRACT_BITS, load_avg);
+  int q = p + (1 << FRACT_BITS);
+  int r = DIV_FP (p, q);
+  r = MULT_FP (r, t->recent_cpu);
+  t->recent_cpu = r + (t->noice << FRACT_BITS);
+}
+
+/* Lab 03. */
+/* Computes the new priority for the given thread T. */
+static void
+thread_compute_priority (struct thread* t, void* aux UNUSED) {
+  int PM = PRI_MAX << FRACT_BITS;
+  int p = PM - DIV_FP (t->recent_cpu, 4 << FRACT_BITS) - MULT_FP (2 << FRACT_BITS, t->noice);
+  t->priority = FIXPOINT_TO_INT (p);
 }
 
 /* Stack frame for kernel_thread(). */
@@ -153,22 +174,19 @@ thread_tick (void)
   else
     kernel_ticks++;
 
+  /* Lab 03: Every second we compute the recent_cpu
+   * for each thread. */
+  int old = intr_disable ();
+  // Interruptions must be turned off before calling thread_foreach
+  if (!timer_ticks () % TIMER_FREQ)
+    thread_foreach (&thread_recent_cpu, NULL);
+  if (!timer_ticks () % 4)
+    thread_foreach (&thread_compute_priority, NULL);
+  intr_set_level (old);
+
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
-
-  /*Lab 03*/
-  /*We will compute some variables from here.*/
-  int dos = INT_TO_FIXPOINT(2,1);
-  int ready = 0;
-  if (thread_current () == idle_thread){
-    ready = list_size(&ready_list);
-  }else{
-    ready = list_size(&ready_list)+1;
-  }
-
-  load_avg = MULT_FP(INT_TO_FIXPOINT(59,60),load_avg)+ MULT_FP(INT_TO_FIXPOINT(1,60),INT_TO_FIXPOINT(ready,1));
-  thread_current () -> recent_cpu = MULT_FP(DIV_FP(MULT_FP(dos,load_avg),MULT_FP(dos,load_avg)+1),thread_current () -> recent_cpu)+thread_current () -> noice;
 }
 
 /* Prints thread statistics. */
@@ -406,7 +424,7 @@ thread_get_priority (void)
 
 /* Sets the current thread's nice value to NICE. */
 void
-thread_set_nice (int nice UNUSED) 
+thread_set_nice (int nice) 
 {
   thread_current ()->noice = nice;
 }
@@ -427,19 +445,16 @@ thread_get_load_avg (void)
   if (thread_current () != idle_thread)
   r += 1 << FRACT_BITS;
   load_avg = s + MULT_FP (load_avg_1, r << FRACT_BITS);
-  return FIXPOINT_TO_INT (load_avg)*100;
+  return FIXPOINT_TO_INT (MULT_FP (load_avg, 100 << FRACT_BITS));
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
 {
-  int p = MULT_FP (2 << FRACT_BITS, load_avg);
-  int q = p + (1 << FRACT_BITS);
-  int r = DIV_FP (p, q);
-  r = MULT_FP (r, thread_current()->recent_cpu);
-  thread_current()->recent_cpu = r + (thread_current()->noice << FRACT_BITS);
-  return FIXPOINT_TO_INT ( thread_current()->recent_cpu)*100;
+  struct thread *curr = thread_current ();
+  thread_recent_cpu (curr, NULL);
+  return FIXPOINT_TO_INT (MULT_FP (curr->recent_cpu, 100 << FRACT_BITS));
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
