@@ -171,6 +171,26 @@ thread_tick (void)
 {
   struct thread *t = thread_current ();
 
+  /* Lab 03: Every second we compute the recent_cpu
+   * for each thread. */
+  int old = intr_disable ();
+  // Interruptions must be turned off before calling thread_foreach
+  t->recent_cpu++;
+  if (timer_ticks () % TIMER_FREQ == 0) {
+    /* Computes the load_avg. */
+    int s = MULT_FP (load_avg_2, load_avg);
+    int r = INT_TO_FIXPOINT (ready_threads,1);
+    if (t != idle_thread)
+      r += one;
+    printf ("%d", load_avg);
+    load_avg = s + MULT_FP (load_avg_1, r);
+    /* Computes the recent_cpu for each thread. */
+    thread_foreach (&thread_recent_cpu, NULL);
+  }
+  if (timer_ticks () % 4 == 0)
+    thread_foreach (&thread_compute_priority, NULL);
+  intr_set_level (old);
+
   /* Update statistics. */
   if (t == idle_thread)
     idle_ticks++;
@@ -180,19 +200,6 @@ thread_tick (void)
 #endif
   else
     kernel_ticks++;
-
-  /* Lab 03: Every second we compute the recent_cpu
-   * for each thread. */
-  int old = intr_disable ();
-  // Interruptions must be turned off before calling thread_foreach
-  t->recent_cpu++;
-  if (!timer_ticks () % TIMER_FREQ) {
-    thread_get_load_avg ();
-    thread_foreach (&thread_recent_cpu, NULL);
-  }
-  if (!timer_ticks () % 4)
-    thread_foreach (&thread_compute_priority, NULL);
-  intr_set_level (old);
 
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
@@ -466,11 +473,6 @@ thread_get_nice (void)
 int
 thread_get_load_avg (void) 
 {
-  int s = MULT_FP (load_avg_2, load_avg);
-  int r = INT_TO_FIXPOINT (ready_threads,1);
-  if (thread_current () != idle_thread)
-    r += one;
-  load_avg = s + MULT_FP (load_avg_1, r);
   return FIXPOINT_TO_INT (MULT_FP (load_avg, hundred));
 }
 
@@ -478,9 +480,7 @@ thread_get_load_avg (void)
 int
 thread_get_recent_cpu (void) 
 {
-  struct thread *curr = thread_current ();
-  thread_recent_cpu (curr, NULL);
-  return FIXPOINT_TO_INT (MULT_FP (curr->recent_cpu, hundred));
+  return FIXPOINT_TO_INT (MULT_FP (thread_current ()->recent_cpu, hundred));
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
