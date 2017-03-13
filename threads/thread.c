@@ -175,20 +175,21 @@ thread_tick (void)
    * for each thread. */
   int old = intr_disable ();
   // Interruptions must be turned off before calling thread_foreach
-  t->recent_cpu++;
+  t->recent_cpu += one;
   if (timer_ticks () % TIMER_FREQ == 0) {
     /* Computes the load_avg. */
     int s = MULT_FP (load_avg_2, load_avg);
     int r = INT_TO_FIXPOINT (ready_threads,1);
     if (t != idle_thread)
       r += one;
-    printf ("%d", load_avg);
     load_avg = s + MULT_FP (load_avg_1, r);
     /* Computes the recent_cpu for each thread. */
     thread_foreach (&thread_recent_cpu, NULL);
   }
-  if (timer_ticks () % 4 == 0)
+  if (timer_ticks () % 4 == 0) {
     thread_foreach (&thread_compute_priority, NULL);
+    list_sort (&ready_list, &thread_less, NULL);
+  }
   intr_set_level (old);
 
   /* Update statistics. */
