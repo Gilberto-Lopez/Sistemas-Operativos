@@ -78,7 +78,7 @@ thread_recent_cpu (struct thread* t, void* aux UNUSED) {
 /* Computes the new priority for the given thread T. */
 static void
 thread_compute_priority (struct thread* t, void* aux UNUSED) {
-  int p = PM - DIV_FP (t->recent_cpu, four) - MULT_FP (two, t->noice);
+  int p = PM - DIV_FP (t->recent_cpu, four) - MULT_FP (two, t->noice << FRACT_BITS);
   t->priority = FIXPOINT_TO_INT (p);
 }
 
