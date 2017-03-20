@@ -492,6 +492,10 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
+  /* Lab 04. */
+  /* origianl_priority is set to -1 by default.
+   * If there are currently no donations, set it to -1. */
+  t->original_priority = -1;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
 }

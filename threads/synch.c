@@ -189,6 +189,9 @@ lock_init (struct lock *lock)
   ASSERT (lock != NULL);
 
   lock->holder = NULL;
+  /* Lab 04. */
+  /* previous_priority is -1 by default. */
+  lock->previous_priority = -1;
   sema_init (&lock->semaphore, 1);
 }
 
@@ -207,8 +210,26 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+  /* Lab 04. */
+  /* Interruptions must be turned off to ensure no anomalous
+   * behaviour will occur due to concurrent access.
+   * For example: the holder releases the lock after checking
+   * is not null and before comparing priorities. */
+  struct thread *holder = lock->holder;
+  struct thread *t = thread_current ();
+  int old = intr_disable ();
+  if (holder != NULL && holder->priority < t->priority) {
+    // Priority donation takes place here.
+    // Save the original_priority for this lock in particular.
+    // Multiple donations can occur.
+    lock->previous_priority = holder->original-priority;
+    holder->original_priority = holder->priority;
+    holder->priority = t->priority;
+  }
+  intr_set_level (old);
   sema_down (&lock->semaphore);
-  lock->holder = thread_current ();
+  lock->holder = t;
+
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -242,6 +263,12 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
+  /* Lab 04. */
+  /* There was a donation for this lock. */
+  struct thread *holder = lock->holder;
+  if (lock->previous_priority > -1) {
+    //stuff
+  }
   lock->holder = NULL;
   sema_up (&lock->semaphore);
 }
@@ -363,7 +390,7 @@ semaphore_less(const struct list_elem *e1, const struct list_elem *e2, void *aux
   struct semaphore_elem *s2 = list_entry(e2, struct semaphore_elem, elem);
 
   if (list_empty(&s1->semaphore.waiters))
-    return true;	
+    return true;    
   else if (list_empty(&s2->semaphore.waiters))
     return false;
 
