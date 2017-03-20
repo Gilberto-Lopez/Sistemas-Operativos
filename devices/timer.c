@@ -239,9 +239,6 @@ timer_interrupt (struct intr_frame *args UNUSED)
    * Still we need to count ticks.
    */
   ticks++;
-  /*
-  thread_tick ();
-  */
 
   /* Lab 1: block wait.
    * For every asleep thread in asleep_list:
@@ -274,6 +271,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
       break;
     }
   }
+  thread_tick ();
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
