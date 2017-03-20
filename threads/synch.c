@@ -219,11 +219,13 @@ lock_acquire (struct lock *lock)
   struct thread *t = thread_current ();
   int old = intr_disable ();
   if (holder != NULL && holder->priority < t->priority) {
+    // The first donation takes place.
+    if (holder->original_priority == -1)
+        holder->original_priority = holder->priority;
     // Priority donation takes place here.
     // Save the original_priority for this lock in particular.
     // Multiple donations can occur.
-    lock->previous_priority = holder->original-priority;
-    holder->original_priority = holder->priority;
+    lock->previous_priority = holder->priority;
     holder->priority = t->priority;
   }
   intr_set_level (old);
@@ -267,7 +269,8 @@ lock_release (struct lock *lock)
   /* There was a donation for this lock. */
   struct thread *holder = lock->holder;
   if (lock->previous_priority > -1) {
-    //stuff
+    holder->priority = holder->original_priority;
+    lock->previous_priority = -1;
   }
   lock->holder = NULL;
   sema_up (&lock->semaphore);
