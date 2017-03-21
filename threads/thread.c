@@ -364,8 +364,15 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
-
+  /* Lab 04. */
+  /* While there's a priority donation, the thread
+   * must not be able to change its priority until
+   * it releases the lock. */
+  struct thread *t = thread_current ();
+  if (t->original_priority > -1)// || new_priority > t->priority)
+    t->original_priority = new_priority;
+  else
+    t->priority = new_priority;
   /* in case we now have an unordered list */
   thread_yield ();
 }

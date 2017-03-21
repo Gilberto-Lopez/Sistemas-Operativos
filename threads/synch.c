@@ -270,6 +270,7 @@ lock_release (struct lock *lock)
   struct thread *holder = lock->holder;
   if (lock->previous_priority > -1) {
     holder->priority = holder->original_priority;
+    //holder->original_priority = -1;
     lock->previous_priority = -1;
   }
   lock->holder = NULL;
