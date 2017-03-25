@@ -103,6 +103,7 @@ struct thread
     int priority;                       /* Priority. */
     /* Lab 04. */
     int original_priority;              /* Thread's original priority. */
+    int d;                              /* Donations. */
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
