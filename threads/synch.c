@@ -274,10 +274,9 @@ lock_release (struct lock *lock)
   struct thread *holder = lock->holder;
   // int old = intr_disable ();
   if (lock->d) {
-    if (lock->d < holder->d) {
+    if (lock->d < holder->d)
       holder->priority = lock->previous_priority;
-      holder->d -= lock->d;
-    }
+    holder->d -= lock->d;
     if (holder->d == 0) {
       holder->priority = holder->original_priority;
       holder->original_priority = -1;
