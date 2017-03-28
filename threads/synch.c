@@ -192,6 +192,7 @@ lock_init (struct lock *lock)
   /* Lab 04. */
   /* previous_priority is -1 by default. */
   lock->previous_priority = -1;
+  lock->d = 0;
   sema_init (&lock->semaphore, 1);
 }
 
@@ -273,19 +274,21 @@ lock_release (struct lock *lock)
   /* There was a donation for this lock. */
   struct thread *holder = lock->holder;
   // int old = intr_disable ();
-  if (lock->d) {
+  if (lock->d > 0) {
+    // lock->d is always less or equal than holder->d.
     if (lock->d < holder->d)
       holder->priority = lock->previous_priority;
     holder->d -= lock->d;
+    // lock->d and holder->d were equal.
     if (holder->d == 0) {
       holder->priority = holder->original_priority;
       holder->original_priority = -1;
     }
+    lock->previous_priority = -1;
+    lock->d = 0;
   }
   // intr_set_level (old);
   lock->holder = NULL;
-  lock->previous_priority = -1;
-  lock->d = 0;
   sema_up (&lock->semaphore);
 }
 
