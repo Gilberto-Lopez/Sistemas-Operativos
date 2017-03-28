@@ -193,6 +193,7 @@ lock_init (struct lock *lock)
   /* previous_priority is -1 by default. */
   lock->previous_priority = -1;
   lock->d = 0;
+  lock->n = 0;
   sema_init (&lock->semaphore, 1);
 }
 
@@ -224,8 +225,10 @@ lock_acquire (struct lock *lock)
     if (holder->d == 0)
       holder->original_priority = holder->priority;
     // The first donation for this lock takes place.
-    if (lock->d == 0)
+    if (lock->d == 0) {
       lock->previous_priority = holder->priority;
+      lock->n = holder->d+1;
+    }
     lock->d++;
     holder->d++;
     // Priority donation takes place here.
@@ -276,7 +279,7 @@ lock_release (struct lock *lock)
   // int old = intr_disable ();
   if (lock->d > 0) {
     // lock->d is always less or equal than holder->d.
-    if (lock->d < holder->d)
+    if (lock->d < holder->d && (lock->previous_priority > holder->priority || lock->n == holder->d))
       holder->priority = lock->previous_priority;
     holder->d -= lock->d;
     // lock->d and holder->d were equal.
@@ -286,6 +289,7 @@ lock_release (struct lock *lock)
     }
     lock->previous_priority = -1;
     lock->d = 0;
+    lock->n = 0;
   }
   // intr_set_level (old);
   lock->holder = NULL;
