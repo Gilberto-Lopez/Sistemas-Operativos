@@ -17,9 +17,12 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "devices/timer.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
+/* Lab 07: The stack grows by calling increase_stack. */
+static int grow_stack = 0;
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -38,140 +41,142 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  char* fn_name;
+  fn_name = palloc_get_page (0);
+  if (fn_name == NULL)
+    return TID_ERROR;
+  strlcpy (fn_name, file_name, PGSIZE);
+  char* fn_name_it = fn_name;
+  while (*fn_name_it != '\0') {
+    if (*fn_name_it == ' ') {
+      *fn_name_it = '\0';
+    }
+    fn_name_it++;
+  }
+
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (fn_name, PRI_DEFAULT, start_process, fn_copy);
+  palloc_free_page (fn_name);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
 }
 
-/* Lab 05
-    Used for diagnostics
-*/
-void
-print(void *begin, void *end)
-{
-  void *current = end;
+char* coloca(void* file_name){
+  /* Recorremos el file_name hasta encontrar el fin de cadena. */
+  char* eman_elif = (char*)file_name;
+  while (*eman_elif != '\0') {
+    eman_elif++;
+  }
+  /* Empezamos un caracter antes. */
+  eman_elif--;
+
+  char* stack = PHYS_BASE - 1;
+
+  *stack = '\0';
+  stack--;
+
+  /* Agregamos caracter por caracter. */
+  while (eman_elif >= (char*)file_name) {
+    if (*eman_elif == ' ') {
+      if (*(stack + 1) != '\0') {
+        /* Para colocar un espacio no debi haber visto ninguno antes. */
+        *stack = '\0';
+      } else {
+        stack++;
+      }
+    } else {
+      *stack = *eman_elif;
+    }
+    stack--;
+    eman_elif--;
+  }
+
+  *stack = '\0';
+  stack--;
+
+  /* Escribimos el args + 1 como nulo. */
+  *stack = 0;
+  stack--;
+  *stack = 0;
+  stack--;
+  *stack = 0;
+  stack--;
+  *stack = 0;
+  stack--;
+
+  /* El ultimo caracter de los argumentos. */
+  char* args_end = (stack + 5);
+  /* stack' para recorrer el stack. */
+  char* stackp = stack;
+  /* stack regresa a donde comienza. */
+  stack = PHYS_BASE - 1;
+  /* Se adelanta una posicion pues sabemos que el primer caracter es un fin de cadena. */
+  stack--;
+  /* Contamos el numero de argumentos. */
+  unsigned int args = 0;
+
+  while (stack >= args_end) {
+    /* Si encontramos un fin de cadena, en la siguiente posicion empieza un argumento. */
+    if (*stack == '\0')
+    {
+      args++;
+      *stackp = (((unsigned int)(stack + 1) >> 24) & 0xFF);
+      stackp--;
+      *stackp = (((unsigned int)(stack + 1) >> 16) & 0xFF);
+      stackp--;
+      *stackp = (((unsigned int)(stack + 1) >> 8) & 0xFF);
+      stackp--;
+      *stackp = ((unsigned int)(stack + 1) & 0xFF);
+      stackp--;
+    }
+    stack--;
+  }
+
+  /* Guardamos la posicion donde esta la direccion al primer argumento &args[0]. */
+  stack = (stackp + 1);
+  /* Escribimos &args[0]. */
+  *stackp = (((unsigned int)stack >> 24) & 0xFF);
+  stackp--;
+  *stackp = (((unsigned int)stack >> 16) & 0xFF);
+  stackp--;
+  *stackp = (((unsigned int)stack >> 8) & 0xFF);
+  stackp--;
+  *stackp = ((unsigned int)stack & 0xFF);
+  stackp--;
+  /* Escribimos #args. */
+  *stackp = ((args >> 24) & 0xFF);
+  stackp--;
+  *stackp = ((args >> 16) & 0xFF);
+  stackp--;
+  *stackp = ((args >> 8) & 0xFF);
+  stackp--;
+  *stackp = (args & 0xFF);
+  stackp--;  
+
+  /* Return. */
+  *stackp = 0;
+  stackp--;
+  *stackp = 0;
+  stackp--;
+  *stackp = 0;
+  stackp--;
+  *stackp = 0;
+
+  /* La direcion para el stack pointer */
+  return stackp;
+}
+
+
+void imprime(void* inicio, void* fin) {
+  void* actual = fin;
 
   printf("direc \t entero \t char \tdir \n");
-  while(current >= begin)
-  {
-    printf("%p \t %d \t %c \t %p\n", current, *(char *)current, *(char *)current, *((uint32_t **)current));
-    current--;
+  while(actual >= inicio) {
+    printf("%p \t %d \t %c \t %p\n", actual, *(char*)actual, *(char*)actual, *((uint32_t**)actual));
+
+    actual--;
   }
-}
-
-/* Lab 05
-    Get the number of tokens in a string
-*/
-static int
-count_tokens(const char *s)
-{
-  char *s_cpy = (char *) malloc (strlen(s) + 1); 
-  strlcpy(s_cpy, s, strlen(s) + 1);
-
-  char *ptr = s_cpy;
-  char *saveptr;
-  char *token; 
-
-  int tok_count = 0;
-
-  while((token = strtok_r(ptr, " \t", &saveptr)))
-  {
-    ++tok_count;
-    ptr = NULL;
-  }
-
-  free(s_cpy);
-
-  return tok_count;
-}
-
-/* Lab 05
-    Loads the process's arguments into the stack
-*/
-static void
-load_stack (const char *file_name, struct intr_frame *if_)
-{
-  // Create 2 arrays:
-  // One where we'll store the tokens
-  // One where we'll store the addresses where the tokens are placed
-  int tok_count = count_tokens (file_name);
-  char **str_arr = (char **) malloc (sizeof(char *) * tok_count);
-  int *str_add_arr = (int *) malloc (sizeof(int *) * tok_count);
-
-  // Begin tokenizing and walking the stack
-  if_->esp = (int *) 0xbfffffff;
-
-  char *f_cpy = (char *) malloc (strlen(file_name) + 1); 
-  strlcpy(f_cpy, file_name, strlen(file_name) + 1);
-
-  char *ptr = f_cpy;
-  char *saveptr;
-  char *token; 
-
-  int arr_count = 0;
-  while((token = strtok_r(ptr, " \t", &saveptr)))
-  {
-    // Save the tokens
-    str_arr[arr_count] = token;
-    ++arr_count;
-
-    ptr = NULL;
-  }
-
-  // Walk the tokens in reverse, adding to the stack, and storing addresses
-  int addr_counter = 0;
-  int i;
-  for(i = arr_count - 1; i >= 0; --i)
-  {
-    char *curr_token = str_arr[i];
-    int len = strlen(curr_token);
-
-    int j;
-    for(j = len; j >= 0; --j)
-    {
-      *(char *)if_->esp = curr_token[j];
-      --if_->esp;
-    }
-
-    // Store in address array
-    str_add_arr[addr_counter] = if_->esp + 1;
-    ++addr_counter;
-  }
-
-  // Finished tokenizing, finish the rest of the stack
-  // word-align
-  if_->esp -= 4;
-  *(uint8_t *)if_->esp = 0;
-
-  // Pointers to the tokens (argv)
-  // First add a sentinel 0
-  *(char *)if_->esp = NULL;
-  if_->esp -= 4;
-
-  // Add the previously stored addresses to the stack
-  for(i = 0; i != addr_counter; ++i)
-  {
-    *(char **)if_->esp = str_add_arr[i];
-    if_->esp -= 4;
-  }
-
-  // Pointer to the beginning of the strings (4 units above)
-  *(int *)if_->esp = if_->esp + 4;
-
-  // argc
-  if_->esp -= 4;
-  *(int *)if_->esp = tok_count;
-
-  // return address
-  if_->esp -= 4;
-  *(uint8_t *)if_->esp = 0;
-
-  // Cleanup
-  free (str_arr);
-  free (f_cpy);
-  free (str_add_arr);
 }
 
 /* A thread function that loads a user process and starts it
@@ -189,29 +194,35 @@ start_process (void *file_name_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
 
-  // Before loading, get the first token
-  char *s_cpy = (char *) malloc (strlen(file_name) + 1); 
-  strlcpy(s_cpy, file_name, strlen(file_name) + 1);
-  char *file = (char *) malloc (strlen(file_name) + 1); 
-  strlcpy(file, file_name, strlen(file_name) + 1);
+  char* file_name_end = file_name;
+  bool args = 0;
+  while (*file_name_end != '\0') {
+    if (*file_name_end == ' ') {
+      args = 1;
+      *file_name_end = '\0';
+      break;
+    }
+    file_name_end++;
+  }
 
-  char *ptr = s_cpy;
-  char *saveptr;
-  char *token = strtok_r(ptr, " \t", &saveptr); 
+  success = load (file_name, &if_.eip, &if_.esp);
 
-  success = load (token, &if_.eip, &if_.esp);
+  if (args) {
+    *file_name_end = ' ';
+  }
+
+  //printf("Load: %d\n", success);
+  if (success)
+  {
+    if_.esp = coloca(file_name_);
+    //imprime(if_.esp, PHYS_BASE);
+  }
+
 
   /* If load failed, quit. */
-  // palloc_free_page messes up file_name, hence the copy
   palloc_free_page (file_name);
   if (!success) 
     thread_exit ();
-
-  /* Lab 05
-      Otherwise, put arguments in the stack
-  */
-  load_stack (file, &if_);
-  // print (PHYS_BASE - 35, PHYS_BASE);
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -219,11 +230,6 @@ start_process (void *file_name_)
      arguments on the stack in the form of a `struct intr_frame',
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
-
-  // Cleanup
-  free (s_cpy);
-  free (file);
-
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
 }
@@ -237,13 +243,10 @@ start_process (void *file_name_)
 
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
-
-/* Lab 05
-    Temporary implementation
-*/
 int
 process_wait (tid_t child_tid UNUSED) 
 {
+  //return -1;
   timer_sleep(200);
 
   return -1;
@@ -597,6 +600,25 @@ setup_stack (void **esp)
       if (success)
         *esp = PHYS_BASE;
       else
+        palloc_free_page (kpage);
+    }
+  return success;
+}
+
+/* Lab 07.
+ * Increases the stack size by adding a new page at the "bottom" when needed.
+ */
+bool
+increase_stack (void)
+{
+  uint8_t *kpage;
+  bool success = false;
+  grow_stack++;
+  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+  if (kpage != NULL) 
+    {
+      success = install_page (((uint8_t *) PHYS_BASE) - (grow_stack+1)*PGSIZE, kpage, true);
+      if (!success)
         palloc_free_page (kpage);
     }
   return success;
