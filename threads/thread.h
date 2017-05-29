@@ -2,16 +2,9 @@
 #define THREADS_THREAD_H
 
 #include <debug.h>
-#include <list.h>
+#include "lib/kernel/list.h"
 #include <stdint.h>
-
-/* Lab 02: Used for ordered insertions. */
-bool
-thread_less (const struct list_elem *e1, const struct list_elem *e2, void *aux UNUSED);
-
-/* Lab 01: List for asleep processes. */
-/* Not needed anymore, see asleep_thread structure at timer.c. */
-//#include "lib/kernel/list.h"
+#include "threads/synch.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -88,24 +81,23 @@ typedef int tid_t;
    only because they are mutually exclusive: only a thread in the
    ready state is on the run queue, whereas only a thread in the
    blocked state is on a semaphore wait list. */
+struct son
+  {
+    struct list_elem son_elem;
+    tid_t id;
+    struct thread* t;
+    int exit_stat;
+  };
+
 struct thread
   {
-    /* Lab 01: element of asleep_list. See list.h for more info. */
-    /* Not needed anymore, see asleep_thread structure at timer.c. */
-    //struct list_elem pcb_elem;          /* Needed for asleep_list in timer.c. */
-    //int64_t remaining_time;             /* The time this process must remain asleep. */
-
     /* Owned by thread.c. */
     tid_t tid;                          /* Thread identifier. */
     enum thread_status status;          /* Thread state. */
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
-    /* Lab 03: Multi-level queue scheduling needs the next three members. */
     int priority;                       /* Priority. */
-    int noice;                          /* Niceness, the rare name is due to a local joke. */
-    int recent_cpu;                     /* Amount of time thread has used the cpu */
     struct list_elem allelem;           /* List element for all threads list. */
-
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
@@ -114,6 +106,15 @@ struct thread
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
 #endif
+
+    /*Practice6*/
+    struct semaphore exec_sem;
+    struct list sons;
+    bool waiting;
+    struct thread* father;
+    tid_t stat;
+    uint64_t to_sleep;
+    bool exec_status;
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
